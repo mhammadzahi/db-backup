@@ -1,0 +1,65 @@
+import os
+import subprocess
+from datetime import datetime
+from pathlib import Path
+from dotenv import load_dotenv
+
+
+load_dotenv()
+
+
+original_db = {
+    "host": os.getenv("ORIG_HOST"),
+    "port": int(os.getenv("ORIG_PORT")),
+    "user": os.getenv("ORIG_USER"),
+    "password": os.getenv("ORIG_PASS"),
+    "name": os.getenv("ORIG_DB")
+}
+
+
+backup_db = {
+    "host": os.getenv("BACKUP_HOST"),
+    "port": int(os.getenv("BACKUP_PORT")),
+    "user": os.getenv("BACKUP_USER"),
+    "password": os.getenv("BACKUP_PASS"),
+    "name": os.getenv("BACKUP_DB")
+}
+
+
+dump_file = Path(os.getenv("DUMP_PATH")) / f"{original_db['name']}_{datetime.now().strftime('%Y%m%d')}.backup"
+
+
+dump_cmd = [
+    "pg_dump",
+    "-h", original_db["host"],
+    "-p", str(original_db["port"]),
+    "-U", original_db["user"],
+    "-F", "c",  # custom format
+    "-b",       # include large objects
+    "-f", str(dump_file),
+    original_db["name"]
+]
+
+env = os.environ.copy()
+env["PGPASSWORD"] = original_db["password"]
+
+subprocess.run(dump_cmd, check=True, env=env)
+print(f"Database dumped to {dump_file}")
+
+
+
+restore_cmd = [
+    "pg_restore",
+    "-h", backup_db["host"],
+    "-p", str(backup_db["port"]),
+    "-U", backup_db["user"],
+    "-d", backup_db["name"],
+    "-c",          # clean before restore
+    "-v",
+    str(dump_file)
+]
+
+env["PGPASSWORD"] = backup_db["password"]
+
+subprocess.run(restore_cmd, check=True, env=env)
+print(f"Database restored to {backup_db['name']}")
