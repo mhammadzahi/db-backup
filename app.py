@@ -53,11 +53,13 @@ restore_cmd = [
     "-p", str(backup_db["port"]),
     "-U", backup_db["user"],
     "-d", backup_db["name"],
-    "-c",          # clean before restore
+    "-c",               # Keep clean, but add --if-exists
+    "--if-exists",      # Suppresses "does not exist" errors during clean
+    "--no-owner",       # Do not attempt to set original ownership
+    "--no-privileges",  # Do not attempt to restore access privileges (ACLs)
     "-v",
     str(dump_file)
 ]
-
 env["PGPASSWORD"] = backup_db["password"]
 
 subprocess.run(restore_cmd, check=True, env=env)
