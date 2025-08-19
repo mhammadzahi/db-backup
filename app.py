@@ -43,7 +43,7 @@ dump_cmd = [
 env = os.environ.copy()
 env["PGPASSWORD"] = original_db["password"]
 
-subprocess.run(dump_cmd, env=env)
+subprocess.run(dump_cmd, check=True, env=env)
 print(f"Database dumped to {dump_file}")
 
 
@@ -62,5 +62,5 @@ restore_cmd = [
 ]
 env["PGPASSWORD"] = backup_db["password"]
 
-subprocess.run(restore_cmd, check=True, env=env)
+subprocess.run(restore_cmd, env=env)
 print(f"Database restored to {backup_db['name']}")
