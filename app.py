@@ -5,6 +5,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 
+PG_DUMP_PATH = "/usr/pgsql-17/bin/pg_dump"  # <-- Use the full path here
+PG_RESTORE_PATH = "/usr/pgsql-17/bin/pg_restore" # <-- And here
+
 load_dotenv()
 
 
@@ -29,7 +32,7 @@ backup_db = {
 dump_file = Path('/tmp') / f"{original_db['name']}_{datetime.now().strftime('%Y%m%d')}.backup"
 
 dump_cmd = [
-    "pg_dump",
+    PG_DUMP_PATH
     "-h", original_db["host"],
     "-p", str(original_db["port"]),
     "-U", original_db["user"],
@@ -48,7 +51,7 @@ print(f"Database dumped to {dump_file}")
 
 
 restore_cmd = [
-    "pg_restore",
+    PG_RESTORE_PATH,
     "-h", backup_db["host"],
     "-p", str(backup_db["port"]),
     "-U", backup_db["user"],
