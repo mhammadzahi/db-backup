@@ -32,7 +32,7 @@ backup_db = {
 dump_file = Path('/tmp') / f"{original_db['name']}_{datetime.now().strftime('%Y%m%d')}.backup"
 
 dump_cmd = [
-    PG_DUMP_PATH
+    PG_DUMP_PATH,
     "-h", original_db["host"],
     "-p", str(original_db["port"]),
     "-U", original_db["user"],
