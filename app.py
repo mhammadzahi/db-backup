@@ -26,7 +26,7 @@ backup_db = {
 }
 
 
-dump_file = Path(os.getenv("DUMP_PATH")) / f"{original_db['name']}_{datetime.now().strftime('%Y%m%d')}.backup"
+dump_file = Path('/tmp') / f"{original_db['name']}_{datetime.now().strftime('%Y%m%d')}.backup"
 
 
 dump_cmd = [
@@ -45,7 +45,6 @@ env["PGPASSWORD"] = original_db["password"]
 
 subprocess.run(dump_cmd, check=True, env=env)
 print(f"Database dumped to {dump_file}")
-
 
 
 restore_cmd = [
