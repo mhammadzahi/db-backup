@@ -28,14 +28,14 @@ backup_db = {
 
 dump_file = Path('/tmp') / f"{original_db['name']}_{datetime.now().strftime('%Y%m%d')}.backup"
 
-
 dump_cmd = [
     "pg_dump",
     "-h", original_db["host"],
     "-p", str(original_db["port"]),
     "-U", original_db["user"],
-    "-F", "c",  # custom format
-    "-b",       # include large objects
+    "-F", "c",
+    "-b",
+    "--exclude-schema=_heroku",  # <-- Add this line
     "-f", str(dump_file),
     original_db["name"]
 ]
