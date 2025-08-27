@@ -67,3 +67,4 @@ env["PGPASSWORD"] = backup_db["password"]
 
 subprocess.run(restore_cmd, env=env)
 print(f"Database restored to {backup_db['name']}")
+
