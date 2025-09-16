@@ -4,7 +4,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
-import psycopg2 # You will need this library
+import psycopg2
 
 # --- Prerequisites ---
 # Make sure you have psycopg2 installed:
@@ -21,7 +21,7 @@ PSQL_PATH = shutil.which("psql")
 # Check that all required tools were found
 for tool_path in [PG_DUMP_PATH, PG_RESTORE_PATH, PSQL_PATH]:
     if not tool_path:
-        tool_name = os.path.basename(str(tool_path))
+        tool_name = os.path.basename(str(tool_path) or "UnknownTool")
         print(f"Error: '{tool_name}' executable not found in your system's PATH.")
         print("Please ensure PostgreSQL client tools are installed and in your PATH.")
         exit(1)
@@ -43,7 +43,6 @@ original_db = {
 }
 
 # --- Temporary Database (for restore and export) ---
-# This can be a local, empty database. The script will clean it before restoring.
 temp_db = {
     "host": os.getenv("BACKUP_HOST"),
     "port": int(os.getenv("BACKUP_PORT")),
@@ -53,9 +52,14 @@ temp_db = {
 }
 
 # --- Output Directories ---
+# Get the absolute path of the directory where this script is running
+script_dir = Path(__file__).resolve().parent
 dump_file = Path('/tmp') / f"{original_db['name']}_{datetime.now().strftime('%Y%m%d')}.backup"
-csv_output_dir = Path('/tmp') / f"{original_db['name']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_csv"
+# Create the CSV output directory inside the project folder
+csv_output_dir = script_dir / f"{original_db['name']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_csv"
 csv_output_dir.mkdir(parents=True, exist_ok=True)
+print(f"CSV files will be saved to: {csv_output_dir}")
+
 
 # --- 1. Perform the database dump ---
 print("\nStep 1: Starting database dump...")
@@ -80,7 +84,7 @@ print("\nStep 2: Restoring database to temporary location for export...")
 restore_cmd = [
     PG_RESTORE_PATH, "-h", temp_db["host"], "-p", str(temp_db["port"]),
     "-U", temp_db["user"], "-d", temp_db["name"],
-    "-c", "--if-exists", # Clean (drop) objects before recreating
+    "-c", "--if-exists",
     "--no-owner", "--no-privileges", "-v", str(dump_file)
 ]
 env["PGPASSWORD"] = temp_db["password"]
@@ -90,7 +94,6 @@ try:
     print(f"Database restored successfully to temporary DB '{temp_db['name']}'")
 except subprocess.CalledProcessError as e:
     print("Error during pg_restore:")
-    # We print stdout here because pg_restore -v prints progress to stdout
     print(e.stdout)
     print(e.stderr)
     exit(1)
@@ -103,7 +106,6 @@ try:
         password=temp_db["password"], host=temp_db["host"], port=temp_db["port"]
     )
     cur = conn.cursor()
-    # Get all user tables (excluding system tables)
     cur.execute("""
         SELECT tablename FROM pg_catalog.pg_tables
         WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
@@ -118,13 +120,10 @@ try:
 
     print(f"Found {len(tables)} tables to export.")
 
-    # Iterate and export each table
     for table_name in tables:
         csv_file_path = csv_output_dir / f"{table_name}.csv"
         print(f"  -> Exporting '{table_name}' to {csv_file_path}")
-
-        # Use psql's \copy for efficient export with headers
-        # The command is: \copy (SELECT * FROM "table_name") TO 'path' WITH (FORMAT CSV, HEADER)
+        
         sql_command = f'\\copy (SELECT * FROM "{table_name}") TO \'{csv_file_path}\' WITH (FORMAT CSV, HEADER)'
         
         copy_cmd = [
@@ -143,3 +142,4 @@ except subprocess.CalledProcessError as e:
     print(e.stderr)
 except Exception as e:
     print(f"An unexpected error occurred: {e}")
+    
